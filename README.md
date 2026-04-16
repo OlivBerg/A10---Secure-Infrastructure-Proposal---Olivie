@@ -1,24 +1,10 @@
 # A10: Secure Infrastructure Proposal (Olivie)
 
-## Scenario
-
-A medium sized SaaS company is entering the education market. Today it has a basic Azure footprint and light security. It must grow to support:
-
-1. Enterprise single sign on (customers bring their own identity systems)
-2. Least privilege access for people and for automation
-3. Audit log retention suitable for regulators and customers
-4. Readiness for external compliance reviews
-5. A weekly release cadence without bypassing guardrails
-
-Assumption: stay on Microsoft Azure so identity, logging, policy, and detection stay on one stack and are easier to explain to auditors.
-
 ## Part A: Architecture Diagram
 
 Identity providers connect into Microsoft Entra with SSO and MFA. Access splits into three paths: users receive app roles and groups, platform operations use least privilege RBAC, and services use managed identities so secrets are not embedded in code. Logs go to Log Analytics while Azure Policy and infrastructure as code supply prevention inputs. Microsoft Sentinel detects and manages alerts. The flow ends with containment and remediation such as revoking sessions and adjusting access.
 
 ![Architecture flowchart for Azure and Entra](./image.png)
-
-### How to read the flow
 
 | Step                        | Meaning                                                                                                                          |
 | --------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
@@ -37,25 +23,23 @@ At least five requirements mapped to controls and evidence, spanning identity, v
 
 | Requirement                                          | Control (what we do)                                                                        | Evidence (what we show an auditor)                               |
 | ---------------------------------------------------- | ------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
-| Identity: only authorized people can use the product | Federated SSO, MFA for sensitive accounts, least privilege roles, no shared admin passwords | Access policy summaries, sample sign in history, role matrix     |
+| Identity: only authorized people can use the product | Federated SSO, MFA for sensitive accounts, least privilege roles, no shared admin passwords | Access policy summaries, sample sign in history                  |
 | Identity: admins are identifiable and accountable    | Named admins, just in time elevation for rare tasks, audit trail on privileged actions      | Elevation logs, audit exports with user and action               |
-| Visibility: logs are kept for review                 | Central logging with defined retention; long term archive where required                    | Retention settings, archive policy, sample export                |
+| Visibility: logs are kept for review                 | Central logging with defined retention                                                      | Retention settings, archive policy                               |
 | Visibility: suspicious activity is noticed           | Alerts on failed logins, role changes, unusual API or location patterns                     | Alert descriptions, example incident timeline                    |
 | Policy: baseline security settings are enforced      | Organization wide guardrails; infrastructure defined in code and reviewed in CI             | Policy compliance report, failed build example from a bad change |
 | Policy: environment matches approved design          | Regular checks that live Azure matches approved templates                                   | Drift or compliance scan output                                  |
-
-Supporting tools on Azure include Entra with Conditional Access, Log Analytics, Sentinel, Azure Policy, Defender for Cloud, and standard continuous integration and delivery pipelines.
 
 ## Part C: Incident Response Outline (one scenario)
 
 Scenario: a stolen session or token is used to call admin APIs from an unusual location, suggesting account or token compromise.
 
-| Phase       | Summary                                                                                                                                                                                                                           |
-| ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Detection   | Security monitoring flags a spike in admin API use combined with geo or risk signals from identity logs. On call is notified through the normal alerting path.                                                                    |
-| Evidence    | Pull application audit logs, identity sign in and token activity, edge or gateway access logs if used, and the security tool incident record. Store copies under your retention rules if legal or contractual review is possible. |
-| Containment | Invalidate the affected user sessions and tokens; temporarily restrict admin roles or APIs; block abusive IPs at the network edge; slow or stop sensitive jobs if needed.                                                         |
-| Remediation | Tighten conditional access for locations and MFA strength, rotate exposed secrets, remove secrets from repos, improve detection rules and runbooks, and notify the customer if required.                                          |
+| Phase       | Summary                                                                                                                                                                                                                   |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Detection   | Security monitoring flags a spike in admin API use combined with geo or risk signals from identity logs. On call is notified through the normal alerting path.                                                            |
+| Evidence    | Pull application audit logs, identity sign in and token activity, gateway access logs if used, and the security tool incident record. Store copies under your retention rules if legal or contractual review is possible. |
+| Containment | Invalidate the affected user sessions and tokens; temporarily restrict admin roles or APIs, block abusive IPs at the network edge and slow or stop sensitive jobs if needed.                                              |
+| Remediation | Tighten conditional access for locations and MFA strength, rotate exposed secrets, remove exposed secrets, improve detection rules and runbooks, and notify the customer.                                                 |
 
 ## Brief justification of key design decisions and tradeoffs
 
@@ -66,8 +50,8 @@ Scenario: a stolen session or token is used to call admin APIs from an unusual l
 
 ## Reflection Question
 
-What tradeoffs did you make to balance security, compliance, cost, and development velocity? What would you add with more time and budget?
+**What tradeoffs did you make to balance security, compliance, cost, and development velocity? What would you add with more time and budget?**
 
-Tradeoffs: the design favors clarity and auditability with one stack, strong identity, and logging over minimal spend and maximum agility. Automation in deployment and policy keeps weekly releases realistic. Some risk is accepted and handled with detection and response rather than blocking every change by committee.
+Tradeoffs: the design favors clarity and auditability with one stack, strong identity, and logging over minimal spend and maximum agility. Some risk is accepted and handled with detection and response rather than blocking every change by committee.
 
-With more time and budget: deeper data governance for education data, formal compliance mapping such as SOC 2, customer managed keys for the most sensitive tenants, regular simulated incidents and external penetration testing, and resilience testing so logging survives outages.
+With more time and budget: deeper data governance for education data, formal compliance mapping, customer managed keys for the most sensitive tenants, regular simulated incidents and external penetration testing, and resilience testing so logging survives outages.
